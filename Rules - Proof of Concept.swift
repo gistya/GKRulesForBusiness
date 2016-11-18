@@ -64,71 +64,14 @@ class waxItemEntity:GKEntity {
     /* Represents the persisted document's state at initial point */
     var ticketItemNS:[String:AnyObject]! =
     [
-        // identity
-        
-        //        "guid"                  : xxx       ,
-        //        "ticketItemID"          : xxx       ,
-        //        "itemID"                : xxx       ,
-        //        "itemIndex"             : xxx       ,
-        //        "itemVariation"         : xxx       ,
-        //        "itemName"              : xxx       ,
-        
-        // status
-        
         "mode"                  : "DELETE"  ,
         "isDelete"              : false     ,
         "isOpenItem"            : true      ,
         "isRefundedItem"        : false     ,
-        
-        // sync
-        
-        //        "serverTicketItemID"    : xxx       ,
-        
-        // fees
-        
-        //        "fixedFeeAmount"        : xxx       ,
-        
-        // printing
-        
-        //        "printerID"             : xxx       ,
-        //        "printerGroupID"        : xxx       ,
-        //        "isItemPrint"           : true      ,
-        
-        // inventory relation
-        
-        //        "inventoryItemID"       : xxx       ,
-        //        "categoryID"            : xxx       ,
-        //        "combinationID"         : xxx       ,
-        //        "skuNumber"             : xxx       ,
-        //        "barCode"               : xxx       ,
-        
-        // pricing
-        
-        //        "itemCost"              : xxx       ,
-        //        "itemPrice"             : xxx       ,
-        
-        // tax
-        
-        //        "taxID"                 : xxx       ,
-        //        "taxAmount"             : xxx       ,
-        //        "taxPercent"            : xxx       ,
-        //        "salesTax"              : xxx       ,
         "totalPrice"            : 10.0      ,
-        
-        // discount
-        
-        //        "discountID"            : xxx       ,
         "discountAmount"        : 0.0       ,
         "discountPercentage"    : 0.0       ,
         "isPercentageDiscount"  : false     ,
-        //        "calculatedPerDiscount" : xxx       ,
-        //        "overrideAmount"        : xxx       ,
-        
-        // ticket relation
-        
-        //        "ticketNumber"          : xxx       ,
-        //        "itemQuantity"          : xxx       ,
-        
         "discountLevel"         : "itemLevelDiscount" ]
     
     /* Component that handles rules and state changes for pricing */
@@ -300,7 +243,7 @@ class WAX_RuleProvider:NSObject {
     class func getPricingRules() -> [GKRule] {
         
         let rules =
-        /* Equality rules */
+            /* Equality rules */
         [   ƒ.newEqualityRule(discountLevel,      equals:DISCOUNTLEVELITEM,   fact: discountIsItemLevel       ,salience:1 ),
             ƒ.newEqualityRule(isDelete,           equals:false,               fact: ticketItemIsValid         ,salience:4 ),
             ƒ.newEqualityRule(percentage,         equals:true,                fact: discountIsPercentageType  ,salience:3 ),
@@ -373,15 +316,15 @@ class waxPriceComponent:GKComponent {
         let states =
         [
             /* Initial state. */
-            itemInittedState.init                                            (
-                myController:self, myEntity:entity as! waxItemEntity        ) ,
+            itemInittedState.init                                           (
+                myController:self, myEntity:entity as! waxItemEntity        ),
             
             /* Percent discount state. */
-            itemReadyForPercentageDiscountApplication.init                   (
-                myController:self, myEntity:entity as! waxItemEntity        ) ,
+            itemReadyForPercentageDiscountApplication.init                  (
+                myController:self, myEntity:entity as! waxItemEntity        ),
             
             /* Amount discount state. */
-            itemReadyForAmountDiscountApplication.init                       (
+            itemReadyForAmountDiscountApplication.init                      (
                 myController:self, myEntity:entity as! waxItemEntity        )
             
         ];
@@ -403,7 +346,7 @@ class waxPriceComponent:GKComponent {
         var stateToTransitionTo:[String:AnyObject] = item.ticketItemNS
         stateToTransitionTo[discountPercent] = item.discountPercentValue
         stateToTransitionTo[discountAmount]  = 0.0
-        stateToTransitionTo[percentage]      = true; //this action could also be made a rule somehow
+        stateToTransitionTo[percentage]      = true; //this action could also be made a rule 
         transitionToState(stateToTransitionTo)
     }
     
