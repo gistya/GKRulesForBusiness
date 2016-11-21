@@ -1,12 +1,14 @@
 /*  GKRules for Business - Proof of Concept (c) 2016 Jon Gilbert */
 
+/* Paste into Swift Sandbox */
+
 /*
-The intended use case of GKStateMachine was for games whose event loop is
-based on the FPS of the game. We are using UI interactions instead,
-so in each of our states there will be a simple updateEvent() method.
-We call that on each component's current state when a change happens
-with data of the entity that's relevant to that particular component.
-*/
+ The intended use case of GKStateMachine was for games whose event loop is
+ based on the FPS of the game. We are using UI interactions instead,
+ so in each of our states there will be a simple updateEvent() method.
+ We call that on each component's current state when a change happens
+ with data of the entity that's relevant to that particular component.
+ */
 
 import Foundation
 import GameKit
@@ -30,10 +32,10 @@ let discountIsAmountType     = "discountIsAmountType"
 let discountAmountIsSet      = "discountAmountIsSet"
 
 /* GKEntities act as staging areas for business logic before changes propagate to Data Model */
-class waxItemEntity:GKEntity {
+class G_ItemEntity:GKEntity {
     
     /* Below are the "staging" properties that change on user input but do not necessarily reflect end results
-    because state changes will use rules on this. */
+     because state changes will use rules on this. */
     var amount:Double!
     
     // Note: You must use a private _iVar like this to prevent a loop in a custom getter/setter (see below)
@@ -62,20 +64,20 @@ class waxItemEntity:GKEntity {
     static let xxx:String = "asdf"
     
     /* Represents the persisted document's state at initial point */
-    var ticketItemNS:[String:AnyObject]! =
-    [
-        "mode"                  : "DELETE"  ,
-        "isDelete"              : false     ,
-        "isOpenItem"            : true      ,
-        "isRefundedItem"        : false     ,
-        "totalPrice"            : 10.0      ,
-        "discountAmount"        : 0.0       ,
-        "discountPercentage"    : 0.0       ,
-        "isPercentageDiscount"  : false     ,
-        "discountLevel"         : "itemLevelDiscount" ]
+    var ticketItem:[String:Any]! =
+        [
+            "mode"                  : "DELETE"  ,
+            "isDelete"              : false     ,
+            "isOpenItem"            : true      ,
+            "isRefundedItem"        : false     ,
+            "totalPrice"            : 10.0      ,
+            "discountAmount"        : 0.0       ,
+            "discountPercentage"    : 0.0       ,
+            "isPercentageDiscount"  : false     ,
+            "discountLevel"         : "itemLevelDiscount" ]
     
     /* Component that handles rules and state changes for pricing */
-    var priceComponent:waxPriceComponent?
+    var priceComponent:G_PriceComponent?
     
     override init() {
         super.init()
@@ -83,30 +85,34 @@ class waxItemEntity:GKEntity {
         print("Entity setting initial values from dictionary")
         
         /* Set up staging vars with initial values.
-        Note: "as?" needs the question mark below to reassure Swift that the dictionary value
-        might actually indeed be a Double. Sigh. Jesus fucking Christ. I get it, but fuck me. */
-        self.discountPercentValue = self.ticketItemNS[discountPercent] as? Double
-        self.discountAmountValue  = self.ticketItemNS[discountAmount]  as? Double
-        self.amount               = self.ticketItemNS[totalPrice]      as? Double
+         Note: "as?" needs the question mark below to reassure Swift that the dictionary value
+         might actually indeed be a Double. Sigh. Jesus fucking Christ. I get it, but fuck me. */
+        self.discountPercentValue = self.ticketItem[discountPercent] as? Double
+        self.discountAmountValue  = self.ticketItem[discountAmount]  as? Double
+        self.amount               = self.ticketItem[totalPrice]      as? Double
         
         print("Initting price component")
         
         /* Init price component and add it. */
-        self.priceComponent = waxPriceComponent.init();
+        self.priceComponent = G_PriceComponent.init();
         addComponent(priceComponent!)
         priceComponent?.setUpStates()
         
         print("pricing component entity = ",self.priceComponent?.entity)
         
     }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 }
 
-class waxState:GKState {
+class G_State:GKState {
     
     var controller:AnyObject!
-    var entity:waxItemEntity!
+    var entity:G_ItemEntity!
     
-    init(myController:AnyObject?,myEntity:waxItemEntity!) {
+    init(myController:AnyObject?,myEntity:G_ItemEntity!) {
         super.init()
         self.controller == nil ? self.controller = myController : ()
         self.entity     == nil ? self.entity     = myEntity     : ()
@@ -116,59 +122,59 @@ class waxState:GKState {
     
 }
 
-class itemInittedState:waxState {
+class itemInittedState:G_State {
     
-    override func didEnterWithPreviousState(previousState: GKState?) {
+    override func didEnter(from previousState: GKState?) {
         print("entered itemInitted state")
     }
-    override func willExitWithNextState(nextState: GKState) {
+    override func willExit(to nextState: GKState) {
         print("entering discount mode")
     }
     
 }
 
 
-class itemReadyForPercentageDiscountApplication:waxState {
+class itemReadyForPercentageDiscountApplication:G_State {
     
-    override func didEnterWithPreviousState(previousState: GKState?) {
+    override func didEnter(from previousState: GKState?) {
         print("entered itemReadyForPercentageDiscountApplication")
         entity.amount = entity.amount! * entity.discountPercentValue!
         
         // Don't need this next line right now, not sure what use it could be here.
         //self.willExitWithNextState(stateMachine?.stateForClass(itemInittedState))
     }
-    override func willExitWithNextState(nextState: GKState?) {
+    override func willExit(to nextState: GKState?) {
         //
     }
-    override func isValidNextState(stateClass: AnyClass) -> Bool {
+    override func isValidNextState(_ stateClass: AnyClass) -> Bool {
         //
         return true
     }
-    override func updateWithDeltaTime(seconds: NSTimeInterval) {
+    override func update(deltaTime seconds: TimeInterval) {
         //
     }
 }
 
-class itemReadyForAmountDiscountApplication:waxState {
+class itemReadyForAmountDiscountApplication:G_State {
     
-    override func didEnterWithPreviousState(previousState: GKState?) {
+    override func didEnter(from previousState: GKState?) {
         print("\n\n","entered itemReadyForAmountDiscountApplication")
         entity.amount = entity.amount! - entity.discountAmountValue!
         print(entity.amount)
     }
-    override func willExitWithNextState(nextState: GKState) {
+    override func willExit(to nextState: GKState) {
         //
     }
-    override func isValidNextState(stateClass: AnyClass) -> Bool {
+    override func isValidNextState(_ stateClass: AnyClass) -> Bool {
         //
         return true
     }
-    override func updateWithDeltaTime(seconds: NSTimeInterval) {
+    override func update(deltaTime seconds: TimeInterval) {
         //
     }
 }
 
-class waxItemPricingStateMachine:GKStateMachine {
+class G_ItemPricingStateMachine:GKStateMachine {
     
     override init(states: [GKState]) {
         
@@ -187,115 +193,131 @@ class router:NSObject {
     //maybe use multiple rule systems one for each "junction" at the decision tree
 }
 
-class WAX_RuleFactory:NSObject {
+class G_RuleFactory:NSObject {
     
     typealias exp = NSExpression
     typealias prd = NSPredicate
     typealias cmp = NSComparisonPredicate
-    typealias mod = NSComparisonPredicateModifier
-    typealias typ = NSPredicateOperatorType
-    typealias opt = NSComparisonPredicateOptions
+    typealias mod = NSComparisonPredicate.Modifier
+    typealias typ = NSComparisonPredicate.Operator
+    typealias opt = NSComparisonPredicate.Options
     
-    class func newGreaterThanRule(check:String!,exceeds:AnyObject!,fact:String!,salience:Int=0,grade:Float = 1.0) -> GKRule {
+    class func newGreaterThanRule(check:String!,exceeds:Any!,fact:String!,salience:Int=0,grade:Float = 1.0) -> GKRule {
         let exp1L:exp = exp(       forVariable: check    )
         let exp1R:exp = exp(  forConstantValue: exceeds  )
         let pred1:prd = cmp(
             leftExpression: exp1L, rightExpression: exp1R,
-            modifier:   mod.DirectPredicateModifier,
-            type:       typ.GreaterThanPredicateOperatorType,
-            options:    opt.CaseInsensitivePredicateOption)
-        let rule1:GKRule = GKRule.init(predicate: pred1, assertingFact:fact, grade:grade)
+            modifier:   mod.direct,
+            type:       typ.greaterThan,
+            options:    opt.caseInsensitive)
+        let rule1:GKRule = GKRule.init(predicate: pred1, assertingFact:fact as NSObjectProtocol, grade:grade)
         rule1.salience = salience
         return rule1;
     }
     
-    class func newEqualityRule(check:String!,equals:AnyObject!,fact:String!,salience:Int=0,grade:Float = 1.0) -> GKRule {
+    class func newEqualityRule(check:String!,equals:Any!,fact:String!,salience:Int=0,grade:Float = 1.0) -> GKRule {
         let exp1L:exp = exp(       forVariable: check   )
         let exp1R:exp = exp(  forConstantValue: equals  )
         let pred1:prd = cmp(
             leftExpression: exp1L, rightExpression: exp1R,
-            modifier:   mod.DirectPredicateModifier,
-            type:       typ.EqualToPredicateOperatorType,
-            options:    opt.CaseInsensitivePredicateOption)
-        let rule1:GKRule = GKRule.init(predicate: pred1, assertingFact:fact, grade:grade)
+            modifier:   mod.direct,
+            type:       typ.equalTo,
+            options:    opt.caseInsensitive)
+        let rule1:GKRule = GKRule.init(predicate: pred1, assertingFact:fact as NSObjectProtocol, grade:grade)
         rule1.salience = salience
         return rule1;
     }
     
-    class func newEqualityBan(check:String!,equals:AnyObject!,fiction:String!,salience:Int=0,grade:Float = 1.0) -> GKRule {
+    class func newEqualityBan(check:String!,equals:Any!,fiction:String!,salience:Int=0,grade:Float = 1.0) -> GKRule {
         let exp1L:exp = exp(       forVariable: check   )
         let exp1R:exp = exp(  forConstantValue: equals  )
         let pred1:prd = cmp(
             leftExpression: exp1L, rightExpression: exp1R,
-            modifier:   mod.DirectPredicateModifier,
-            type:       typ.EqualToPredicateOperatorType,
-            options:    opt.CaseInsensitivePredicateOption)
-        let rule1:GKRule = GKRule.init(predicate: pred1, retractingFact: fiction, grade: grade)
+            modifier:   mod.direct,
+            type:       typ.equalTo,
+            options:    opt.caseInsensitive)
+        let rule1:GKRule = GKRule.init(predicate: pred1, retractingFact: fiction as NSObjectProtocol, grade: grade)
         rule1.salience = salience
         return rule1;
     }
 }
 
-class WAX_RuleProvider:NSObject {
+class G_RuleProvider:NSObject {
     
-    typealias ƒ = WAX_RuleFactory
+    typealias ƒ = G_RuleFactory
     
     class func getPricingRules() -> [GKRule] {
         
         let rules =
             /* Equality rules */
-        [   ƒ.newEqualityRule(discountLevel,      equals:DISCOUNTLEVELITEM,   fact: discountIsItemLevel       ,salience:1 ),
-            ƒ.newEqualityRule(isDelete,           equals:false,               fact: ticketItemIsValid         ,salience:4 ),
-            ƒ.newEqualityRule(percentage,         equals:true,                fact: discountIsPercentageType  ,salience:3 ),
-            ƒ.newEqualityRule(percentage,         equals:false,               fact: discountIsAmountType      ,salience:3 ),
-            
-            /* Greater than rules */
-            ƒ.newGreaterThanRule(discountPercent, exceeds:0.001,              fact: discountPercentageIsSet   ,salience:2 ),
-            ƒ.newGreaterThanRule(discountAmount , exceeds:0.001,              fact: discountAmountIsSet       ,salience:2 )]
+            [   ƒ.newEqualityRule(check: discountLevel,      equals:DISCOUNTLEVELITEM,   fact: discountIsItemLevel       ,salience:1 ),
+                ƒ.newEqualityRule(check: isDelete,           equals:false,               fact: ticketItemIsValid         ,salience:4 ),
+                ƒ.newEqualityRule(check: percentage,         equals:true,                fact: discountIsPercentageType  ,salience:3 ),
+                ƒ.newEqualityRule(check: percentage,         equals:false,               fact: discountIsAmountType      ,salience:3 ),
+                
+                /* Greater than rules */
+                ƒ.newGreaterThanRule(check: discountPercent, exceeds:0.001,              fact: discountPercentageIsSet   ,salience:2 ),
+                ƒ.newGreaterThanRule(check: discountAmount , exceeds:0.001,              fact: discountAmountIsSet       ,salience:2 )]
         
         return rules
     }
 }
 
 /* Business logic container for item pricing */
-class waxPriceComponent:GKComponent {
+class G_PriceComponent:GKComponent {
     
     var stateMachine :GKStateMachine
     
     /* Rules processing */
     var  ruleSys      :GKRuleSystem
     
-    func stateFor(vars:[String:AnyObject]) -> [AnyObject] {
+    func stateFor(vars:[String:Any]) -> [Any] {
         ruleSys.removeAllRules()
         ruleSys.state.removeAllObjects()
-        ruleSys.state.addEntriesFromDictionary(vars)
+        ruleSys.state.addEntries(from: vars)
         ruleSys.reset() //clear previous facts
-        ruleSys.addRulesFromArray(WAX_RuleProvider.getPricingRules())
+        ruleSys.add(G_RuleProvider.getPricingRules())
         ruleSys.reset() //ensure salience is respected (fails due to Apple's bug)
         
         for rule:GKRule in ruleSys.agenda {
-            print("Predicate: ",rule.valueForKey("predicate")," Salience: ",rule.salience)
+            print("Predicate: ",rule.value(forKey: "predicate")," Salience: ",rule.salience)
         }
         ruleSys.evaluate()
-        return ruleSys.facts
+        let facts = ruleSys.facts as! [String]
+        print("facts: \(facts)")
+        let facts2 = facts.sorted{ (a, b) -> Bool in
+            if let aa = a as? String {
+                if let bb = b as? String {
+                    print("\(aa) \(bb)")
+                    /*let r:Int = Int(aa.compare(bb).rawValue) 
+                     print("r: \(r)")
+                     return r == -1*/
+                    return aa.compare(bb) == ComparisonResult.orderedAscending
+                }
+            }
+            print("here")
+            return false
+        }
+        print("facts: \(facts2)")
+        return facts2
     }
     
     /* Lookup table for conditions (GKRuleSys "facts" output) */
     var routes:[NSArray:AnyClass] =
-    
-    /* Route to percentage discount calculation state. */
-    [[      discountIsItemLevel                                 ,
-            discountPercentageIsSet                             ,
-            discountIsPercentageType                            ,
-            ticketItemIsValid                                   ]:
-            itemReadyForPercentageDiscountApplication.self      ,
         
-    /* Route to amount discount calculation state. */
-    [       discountAmountIsSet                                 ,  // had to move this up one slot to make it work
-            discountIsItemLevel                                 ,  // (due to Apple's bug)
-            discountIsAmountType                                ,
-            ticketItemIsValid                                   ]:
-            itemReadyForAmountDiscountApplication.self          ]
+        /* Route to percentage discount calculation state. */
+        [[      discountIsItemLevel                                 ,
+                discountIsPercentageType                            ,
+                discountPercentageIsSet                             ,
+                ticketItemIsValid                                   ]:
+            itemReadyForPercentageDiscountApplication.self      ,
+         
+         /* Route to amount discount calculation state. */
+            [   discountAmountIsSet                                 ,
+                discountIsAmountType                                ,
+                discountIsItemLevel                                 , 
+                ticketItemIsValid                                   ]:
+                itemReadyForAmountDiscountApplication.self          ]
     
     override init() {
         
@@ -309,31 +331,35 @@ class waxPriceComponent:GKComponent {
         super.init()
     }
     
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     func setUpStates() {
         print("initting states")
         
         /* Init the states array. */
         let states =
-        [
-            /* Initial state. */
-            itemInittedState.init                                           (
-                myController:self, myEntity:entity as! waxItemEntity        ),
-            
-            /* Percent discount state. */
-            itemReadyForPercentageDiscountApplication.init                  (
-                myController:self, myEntity:entity as! waxItemEntity        ),
-            
-            /* Amount discount state. */
-            itemReadyForAmountDiscountApplication.init                      (
-                myController:self, myEntity:entity as! waxItemEntity        )
-            
+            [
+                /* Initial state. */
+                itemInittedState.init                                           (
+                    myController:self, myEntity:entity as! G_ItemEntity        ),
+                
+                /* Percent discount state. */
+                itemReadyForPercentageDiscountApplication.init                  (
+                    myController:self, myEntity:entity as! G_ItemEntity        ),
+                
+                /* Amount discount state. */
+                itemReadyForAmountDiscountApplication.init                      (
+                    myController:self, myEntity:entity as! G_ItemEntity        )
+                
         ];
         
         /* Init the stateMachine with the relevant states. */
         self.stateMachine = GKStateMachine.init(states: states)
         
         /* Enter the initial state. */
-        self.stateMachine.enterState(itemInittedState)
+        self.stateMachine.enter(itemInittedState)
     }
     
     func discountPercentDidChange() {
@@ -341,27 +367,29 @@ class waxPriceComponent:GKComponent {
         print("Running discountDidChange")
         
         /* Cast down our heavenly entity to the depths of retail hell. */
-        let item:waxItemEntity = self.entity as! waxItemEntity
+        let item:G_ItemEntity = self.entity as! G_ItemEntity
         
-        var stateToTransitionTo:[String:AnyObject] = item.ticketItemNS
+        var stateToTransitionTo = item.ticketItem as [String : Any]
         stateToTransitionTo[discountPercent] = item.discountPercentValue
         stateToTransitionTo[discountAmount]  = 0.0
         stateToTransitionTo[percentage]      = true; //this action could also be made a rule 
-        transitionToState(stateToTransitionTo)
+        transitionToState(stateToTransitionTo: stateToTransitionTo)
     }
     
-    func transitionToState(stateToTransitionTo:[String:AnyObject]) {
+    func transitionToState(stateToTransitionTo:[String:Any]) {
         
         /* Cast down our heavenly entity to the depths of retail hell. */
-        let item:waxItemEntity = self.entity as! waxItemEntity
-        
-        switch routes[stateFor(stateToTransitionTo)] {
+        let item:G_ItemEntity = self.entity as! G_ItemEntity
+        let key = stateFor(vars: stateToTransitionTo) as! NSArray
+        let route = routes[key]
+        print("\(route)")
+        switch route {
         case nil:
-            print("\n\n","Warning! No state found for fact set: ",ruleSys.facts);
+            print("\n\n","Warning! No state found for fact set: ",route);
             return
         default:
-            print("Transitioning to state: ",routes[ruleSys.facts]!)
-            self.stateMachine.enterState(routes[ruleSys.facts]!)
+            print("Transitioning to state: ",route)
+            self.stateMachine.enter(route!)
             print("price = ",item.amount)
         }
     }
@@ -371,67 +399,66 @@ class waxPriceComponent:GKComponent {
         print("Running discountAmountDidChange")
         
         /* Cast down our heavenly entity to the depths of retail hell. */
-        let item:waxItemEntity = self.entity as! waxItemEntity
+        let item:G_ItemEntity = self.entity as! G_ItemEntity
         
-        var stateToTransitionTo:[String:AnyObject] = item.ticketItemNS
+        var stateToTransitionTo = item.ticketItem as [String:Any] 
         stateToTransitionTo[discountAmount]  = item.discountAmountValue
         stateToTransitionTo[discountPercent] = 0.0
         stateToTransitionTo[percentage]      = false //this action could also be made a rule somehow
-        transitionToState(stateToTransitionTo)
+        transitionToState(stateToTransitionTo: stateToTransitionTo)
     }
 }
 
-class Controller : NSObject {
+class G_Controller : NSObject {
     
-    var item:waxItemEntity
+    var item:G_ItemEntity
     
     override init() {
         print("Initting entity")
-        self.item = waxItemEntity.init()
+        self.item = G_ItemEntity.init()
         print(self.item)
     }
     
     func addDiscountPercentToItem(discount:Double!) {
-        print("before:")
-        print("item price: ", item.amount)
-        print("discount percentage: ",item.discountPercentValue)
-        print("discount to make it: ",discount)
+        print("adding discount...")
+        print("item price before adding percentage discount: ", item.amount)
+        print("discount: ",discount)
         
         item.discountPercentValue = discount
         
-        print("\n","after:")
-        print("item price: ", item.amount)
-        print("discount percentage: ",item.discountPercentValue)
+        print("item price after adding percentage discount: ", item.amount)
     }
     
     func addDiscountAmountToItem(discount:Double!) {
-        print("before:")
-        print("item price: ", item.amount)
-        print("discount amount: ",item.discountAmountValue)
-        print("discount to make it: ",discount)
+        print("adding discount...")
+        print("item price before adding amount discount: ", item.amount)
+        print("discount: ",discount)
         
         item.discountAmountValue = discount
         
-        print("\n","after:")
-        print("item price: ", item.amount)
-        print("discount amount: ",item.discountAmountValue)
+        print("item price after adding amount discount: ", item.amount)
     }
 }
 
+
+/******** RUN SECTION ***********/
+
 print("\n","Registering controller","\n")
 
-var registerController:Controller = Controller.init()
+var register = G_Controller.init()
 
 print("\n","Proceeding with test","\n")
 
 /* Simulated input from UI */
-registerController.addDiscountPercentToItem(0.50)
-registerController.addDiscountAmountToItem(2.00)
+register.addDiscountPercentToItem(discount: 0.50)
+register.addDiscountAmountToItem(discount: 2.00)
+
+/********************************/
 
 func convertStringToDictionary(text: String) -> [String:AnyObject]? {
-    if let data = text.dataUsingEncoding(NSUTF8StringEncoding) {
+    if let data = text.data(using: String.Encoding.utf8) {
         do {
-            let json = try NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.AllowFragments) as! [String:AnyObject]
+            let json = try JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.allowFragments) as! [String:AnyObject]
             return json
         } catch {
             
@@ -441,13 +468,13 @@ func convertStringToDictionary(text: String) -> [String:AnyObject]? {
 }
 
 let webRuleString:String = "{ \"domain\"    : \"TicketItem\"        , "
-                         + "  \"type\"      : \"equality\"          , "
-                         + "  \"salience\"  : \"4\"                 , "
-                         + "  \"assertion\" : \"mode\"              , "
-                         + "  \"equals\"    : \"isDelete\"          , "
-                         + "  \"fact\"      : \"ticketItemIsVoid\"  } "
+    + "  \"type\"      : \"equality\"          , "
+    + "  \"salience\"  : \"4\"                 , "
+    + "  \"assertion\" : \"mode\"              , "
+    + "  \"equals\"    : \"isDelete\"          , "
+    + "  \"fact\"      : \"ticketItemIsVoid\"  } "
 
-let webRuleDict:[String:AnyObject]! = convertStringToDictionary(webRuleString)
+let webRuleDict:[String:AnyObject]! = convertStringToDictionary(text: webRuleString)
 
 switch webRuleDict!["type"] as! String {
     
@@ -456,9 +483,8 @@ case "equality":
     let equals    :AnyObject! = webRuleDict["equals"]!
     let fact      :String!    = webRuleDict["fact"] as! String
     
-    let webRule:GKRule = WAX_RuleFactory.newEqualityRule(assertion,equals:equals,fact:fact)
+    let webRule:GKRule = G_RuleFactory.newEqualityRule(check: assertion,equals:equals,fact:fact)
     break
 default:
     break
 }
-
