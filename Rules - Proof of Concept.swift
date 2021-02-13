@@ -359,7 +359,7 @@ class G_PriceComponent:GKComponent {
         self.stateMachine = GKStateMachine.init(states: states)
         
         /* Enter the initial state. */
-        self.stateMachine.enter(itemInittedState)
+        self.stateMachine.enter(itemInittedState.self)
     }
     
     func discountPercentDidChange() {
